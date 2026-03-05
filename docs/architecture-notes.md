@@ -1,0 +1,15 @@
+Plan d'Architecture : Refactoring du Prototype Poker1. Le Challenge (Pourquoi on casse tout ?)Bien que le prototype visuel soit satisfaisant, il viole actuellement les principes d'un code maintenable : l'état du jeu (le mock INITIAL_GAME_STATE), les sous-composants (PlayingCard, PlayerSeat) et la vue principale (App) sont dans le même fichier.Pour un développeur junior ou senior, c'est un cauchemar à maintenir dès qu'on ajoute la logique WebSocket.2. Arborescence RecommandéeVoici comment tu dois réorganiser les dossiers dans ton projet React local :src/
+ ┣ components/          # Composants UI purs (stupides/dumb components)
+ ┃ ┣ poker/
+ ┃ ┃ ┣ PlayingCard.jsx  # Affiche juste une carte
+ ┃ ┃ ┣ PlayerSeat.jsx   # Affiche le joueur et ses infos
+ ┃ ┃ ┗ PokerBoard.jsx   # Affiche le pot et les cartes communes
+ ┃ ┗ ui/
+ ┃   ┗ Slider.jsx       # Ton composant de mise (range input) réutilisable
+ ┣ hooks/               # Gestion d'état et Logique Métier
+ ┃ ┗ usePokerGame.js    # Hook personnalisé (gérera le WebSocket plus tard)
+ ┣ models/              # Définition des données (Types/Classes)
+ ┃ ┗ GameTypes.js       # Constantes et structure de l'état initial
+ ┗ views/
+   ┗ PokerTable.jsx     # Composant intelligent qui assemble tout
+3. Plan d'action détaillé (Copier-Coller)Étape 1 : Isoler les données (src/models/GameTypes.js)Prends la constante INITIAL_GAME_STATE du prototype et exporte-la depuis ce fichier. C'est ici que tu définiras plus tard à quoi ressemble un objet "Joueur" ou "Carte" pour t'assurer que ton front-end et ton back-end parlent le même langage.Étape 2 : Créer le Hook d'état (src/hooks/usePokerGame.js)Ce fichier est crucial. L'UI ne doit jamais modifier le jeu directement.Crée un hook qui contient :const [gameState, setGameState] = useState(INITIAL_GAME_STATE);Les fonctions d'action comme fold(), call(), raise(amount).(C'est dans ce fichier que tu intégreras tes connexions Socket.io ou WebSocket plus tard !)Étape 3 : Extraire les composants UI (src/components/poker/...)Déplace PlayingCard dans son propre fichier.Déplace PlayerSeat dans son propre fichier. N'oublie pas d'importer PlayingCard à l'intérieur !Règle d'or : Ces composants ne font que lire des "props" et afficher du visuel. Ils ne prennent aucune décision.Étape 4 : Nettoyer la vue principale (src/views/PokerTable.jsx)Ton fichier principal deviendra très court et très lisible. Il se contentera de :Appeler le hook : const { gameState, fold, call, raise } = usePokerGame();Afficher la table HTML/Tailwind.Boucler sur les joueurs : gameState.players.map(p => <PlayerSeat player={p} />)4. Prochaine étape : La Cybersécurité et le Back-endPuisque tu t'intéresses au hacking éthique et à la cybersécurité : réfléchis dès maintenant à la manière dont ton serveur va envoyer cet état.Rappel de sécurité absolu : Le client React (ce code) est entièrement manipulable par l'utilisateur (via les DevTools du navigateur). Tu ne pourras jamais faire confiance à une action venant de cette UI. Si l'UI envoie raise(50000) alors que le joueur n'a que 1000 jetons, c'est ton backend (Node.js, Python, etc.) qui devra bloquer l'action.
